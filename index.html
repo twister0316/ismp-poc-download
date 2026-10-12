@@ -1,0 +1,302 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>국회기록원 ISMP 사업 PoC 다운로드</title>
+<style>
+  :root {
+    --nav:#2b4668; --text:#1c1c1c; --muted:#6b7280; --line:#e2e2e2; --strong:#4a4a4a;
+    --panel:#f5f5f5; --accent:#f5c518; --btn:#2b4668; --btn-h:#1f3550; --danger:#c0392b;
+  }
+  * { box-sizing:border-box; }
+  body { margin:0; color:var(--text); background:#fff;
+         font-family:"Pretendard","Malgun Gothic","Apple SD Gothic Neo",system-ui,sans-serif; letter-spacing:-.02em; }
+  button { font:inherit; cursor:pointer; }
+  input, select { font:inherit; }
+
+  /* header */
+  header { height:80px; background:var(--nav); color:#fff; }
+  .head-in { max-width:1152px; height:100%; margin:0 auto; padding:0 16px; display:flex; align-items:center; gap:20px; }
+  .ci { height:34px; width:auto; flex:none; display:block; }
+  .site-title { font-size:18px; font-weight:700; padding-left:20px; margin-left:4px; border-left:1px solid rgba(255,255,255,.35); }
+  .spacer { flex:1; }
+  .icon-btn { background:none; border:0; color:#fff; padding:8px; display:grid; place-items:center; border-radius:50%; }
+  .icon-btn:hover { background:rgba(255,255,255,.15); }
+  .icon-btn svg { width:26px; height:26px; }
+
+  /* body */
+  main { max-width:1152px; margin:0 auto; padding:48px 16px 80px; }
+  .intro { font-size:15px; line-height:1.6; margin:0 0 40px; }
+  .layout { margin-top:8px; }
+  .list-head { display:flex; align-items:center; gap:10px; padding-bottom:20px; border-bottom:2px solid var(--strong); }
+  .list-head svg { width:26px; height:26px; flex:none; }
+  .list-head h2 { margin:0; font-size:22px; }
+  .list-head .cnt { color:var(--accent); }
+  .row { display:flex; align-items:center; gap:16px; padding:22px 24px; border-bottom:1px solid var(--line); }
+  .row .info { flex:1; min-width:0; }
+  .title-line { display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
+  .badge { border:1px solid #888; color:#555; border-radius:14px; font-size:13px; padding:2px 9px; flex:none; }
+  .row .name { font-size:20px; font-weight:700; word-break:break-all; }
+  .meta { margin-top:12px; font-size:14px; color:#555; display:flex; flex-wrap:wrap; gap:4px 0; }
+  .meta span + span::before { content:"•"; color:var(--accent); margin:0 8px; }
+  .dl { flex:none; background:var(--btn); color:#fff; text-decoration:none; padding:10px 18px; border-radius:8px; font-weight:600; font-size:14px; }
+  .dl:hover { background:var(--btn-h); }
+  .empty { padding:56px 0; text-align:center; color:var(--muted); }
+
+  /* admin modal */
+  .overlay { position:fixed; inset:0; background:rgba(0,0,0,.5); display:none; align-items:flex-start; justify-content:center; padding:5vh 16px; overflow:auto; z-index:10; }
+  .overlay.open { display:flex; }
+  .modal { background:#fff; border-radius:14px; width:100%; max-width:760px; padding:28px; }
+  .modal.small { max-width:400px; }
+  .modal h3 { margin:0 0 6px; font-size:20px; }
+  .modal p.lead { margin:0 0 18px; color:var(--muted); font-size:14px; }
+  .field { width:100%; height:44px; border:2px solid var(--line); border-radius:8px; padding:0 12px; }
+  .field:focus { outline:0; border-color:var(--nav); }
+  .btn { height:44px; padding:0 18px; border-radius:8px; border:0; background:var(--btn); color:#fff; font-weight:600; }
+  .btn:hover { background:var(--btn-h); }
+  .btn.ghost { background:#eee; color:#333; }
+  .btn.sm { height:34px; padding:0 12px; font-size:13px; }
+  .btn.danger { background:#fbe9e7; color:var(--danger); }
+  .actions { display:flex; gap:8px; justify-content:flex-end; margin-top:16px; }
+  .msg { min-height:20px; margin-top:10px; font-size:13px; color:var(--danger); }
+  .msg.ok { color:#2e7d32; }
+  .add-app { display:flex; gap:8px; margin-bottom:20px; }
+  .app-box { border:2px solid var(--line); border-radius:10px; padding:14px; margin-bottom:14px; }
+  .app-top { display:flex; gap:8px; align-items:center; margin-bottom:10px; }
+  .app-top .field { font-weight:700; }
+  .ver { display:grid; grid-template-columns:90px 1fr 1.4fr 130px 34px; gap:6px; margin-bottom:6px; }
+  .ver .field { height:38px; font-size:13px; padding:0 8px; }
+  .ver.head { font-size:12px; color:var(--muted); }
+  .x { height:38px; border:0; background:#fbe9e7; color:var(--danger); border-radius:8px; }
+
+  @media (max-width:860px) {
+    .site-title { font-size:14px; padding-left:12px; }
+    .row { flex-direction:column; align-items:flex-start; padding:18px 4px; }
+    .ver { grid-template-columns:1fr 1fr; }
+    .ver.head { display:none; }
+  }
+</style>
+</head>
+<body>
+<header>
+  <div class="head-in">
+    <img class="ci" src="assets/logo-na-archives-white.png" alt="국회기록원">
+    <div class="site-title">국회기록원 ISMP 사업 PoC 다운로드</div>
+    <div class="spacer"></div>
+    <button class="icon-btn" id="gear" title="설정" aria-label="설정">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09a1.65 1.65 0 0 0 1.51-1 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33h0a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51h0a1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82v0a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+    </button>
+  </div>
+</header>
+
+<main>
+  <p class="intro">
+    국회기록원 ISMP 사업 PoC 배포 파일을 다음과 같이 제공하고 있습니다.<br>
+    ※ 파일 용량이 커서 구글 드라이브를 통해 제공되며, 다운로드 버튼을 누르면 구글 드라이브 페이지로 이동합니다.
+    "바이러스 검사를 할 수 없음" 안내가 나오면 "무시하고 다운로드"를 선택하세요.
+  </p>
+
+  <div class="layout">
+    <section>
+      <div class="list-head">
+        <svg viewBox="0 0 26 26"><rect x="2" y="5" width="18" height="18" rx="3" fill="#111"/><path d="M6 14l4 4 7-8" stroke="#fff" stroke-width="2.4" fill="none"/><circle cx="20" cy="6" r="5" fill="var(--accent)"/></svg>
+        <h2>배포 파일 <span class="cnt" id="cnt">0</span>건</h2>
+      </div>
+      <div id="list"></div>
+    </section>
+  </div>
+</main>
+
+<!-- 관리자 모달 -->
+<div class="overlay" id="ov">
+  <div class="modal small" id="login">
+    <h3>관리자용 설정</h3>
+    <p class="lead">관리자용 메뉴입니다. 비밀번호를 입력하세요.</p>
+    <input class="field" id="pw" type="password" placeholder="비밀번호" autocomplete="off">
+    <div class="msg" id="loginMsg"></div>
+    <div class="actions"><button class="btn ghost" data-close>취소</button><button class="btn" id="loginBtn">확인</button></div>
+  </div>
+
+  <div class="modal" id="admin" hidden>
+    <h3>다운로드 관리</h3>
+    <p class="lead">앱을 등록하고, 앱 아래에 버전별 배포 파일 이름과 다운로드 링크를 등록하세요. 변경 후 반드시 [저장]을 누르세요.</p>
+    <div class="add-app">
+      <input class="field" id="newApp" placeholder="새 앱 이름">
+      <button class="btn" id="addApp" style="flex:none">앱 추가</button>
+    </div>
+    <div id="apps"></div>
+    <div class="msg" id="adminMsg"></div>
+    <div class="actions"><button class="btn ghost" data-close>닫기</button><button class="btn" id="save">저장</button></div>
+  </div>
+</div>
+
+<script>
+(function () {
+  "use strict";
+  var $ = function (id) { return document.getElementById(id); };
+  var data = { apps: [] };      // 화면에 표시되는 데이터
+  var draft = null;             // 관리자 편집 중인 데이터
+  var password = "";            // 인증된 관리자 비밀번호 (메모리에만 보관)
+
+  function uid() { return Math.random().toString(36).slice(2, 10); }
+  function today() { return new Date().toISOString().slice(0, 10); }
+  function safeUrl(u) { return /^https?:\/\//i.test(String(u).trim()); }
+  function el(tag, props, kids) {
+    var e = document.createElement(tag);
+    Object.keys(props || {}).forEach(function (k) {
+      if (k === "text") e.textContent = props[k]; else if (k === "class") e.className = props[k]; else e[k] = props[k];
+    });
+    (kids || []).forEach(function (c) { e.appendChild(c); });
+    return e;
+  }
+
+  /* ---------- 데이터 로드 ---------- */
+  function load() {
+    return fetch("/api/data", { cache: "no-store" })
+      .then(function (r) { if (!r.ok) throw 0; return r.json(); })
+      .catch(function () { return fetch("data.json", { cache: "no-store" }).then(function (r) { return r.json(); }); })
+      .then(function (d) { data = d && Array.isArray(d.apps) ? d : { apps: [] }; })
+      .catch(function () { data = { apps: [] }; })
+      .then(render);
+  }
+
+  /* ---------- 공개 목록 ---------- */
+  function flat() {
+    var out = [];
+    data.apps.forEach(function (a) {
+      (a.versions || []).forEach(function (v) { out.push({ app: a, v: v }); });
+    });
+    out.sort(function (x, y) { return String(y.v.date).localeCompare(String(x.v.date)); });
+    return out;
+  }
+
+  function render() {
+    var rows = flat();
+
+    $("cnt").textContent = rows.length.toLocaleString();
+    var list = $("list");
+    list.textContent = "";
+    if (!rows.length) { list.appendChild(el("div", { class: "empty", text: "등록된 배포 파일이 없습니다." })); return; }
+    rows.forEach(function (r) {
+      var info = el("div", { class: "info" }, [
+        el("div", { class: "title-line" }, [
+          el("span", { class: "badge", text: r.v.version }),
+          el("span", { class: "name", text: r.v.fileName })
+        ]),
+        el("div", { class: "meta" }, [el("span", { text: r.app.name }), el("span", { text: r.v.date })])
+      ]);
+      var a = el("a", { class: "dl", text: "다운로드", target: "_blank", rel: "noopener" });
+      if (safeUrl(r.v.url)) a.href = r.v.url;
+      list.appendChild(el("div", { class: "row" }, [info, a]));
+    });
+  }
+
+  /* ---------- 관리자 ---------- */
+  function openModal() {
+    $("ov").classList.add("open");
+    if (password) { showAdmin(); } else {
+      $("login").hidden = false; $("admin").hidden = true;
+      $("pw").value = ""; $("loginMsg").textContent = ""; $("pw").focus();
+    }
+  }
+  function closeModal() { $("ov").classList.remove("open"); }
+
+  $("gear").addEventListener("click", openModal);
+  document.querySelectorAll("[data-close]").forEach(function (b) { b.addEventListener("click", closeModal); });
+  $("ov").addEventListener("mousedown", function (e) { if (e.target === $("ov")) closeModal(); });
+  document.addEventListener("keydown", function (e) { if (e.key === "Escape") closeModal(); });
+
+  function api(body) {
+    return fetch("/api/data", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) })
+      .then(function (r) { return r.json().catch(function () { return {}; }).then(function (j) { return { ok: r.ok, status: r.status, body: j }; }); });
+  }
+
+  function login() {
+    var pw = $("pw").value;
+    if (!pw) return;
+    $("loginMsg").textContent = "확인 중...";
+    api({ action: "verify", password: pw }).then(function (r) {
+      if (r.ok) { password = pw; showAdmin(); }
+      else $("loginMsg").textContent = r.status === 401 ? "비밀번호가 올바르지 않습니다." : (r.body.error || "서버에 연결할 수 없습니다.");
+    }).catch(function () { $("loginMsg").textContent = "서버에 연결할 수 없습니다."; });
+  }
+  $("loginBtn").addEventListener("click", login);
+  $("pw").addEventListener("keydown", function (e) { if (e.key === "Enter") login(); });
+
+  function showAdmin() {
+    draft = JSON.parse(JSON.stringify(data));
+    $("login").hidden = true; $("admin").hidden = false; $("adminMsg").textContent = "";
+    drawAdmin();
+  }
+
+  function bind(input, obj, key) {
+    input.value = obj[key] || "";
+    input.addEventListener("input", function () { obj[key] = input.value; });
+    return input;
+  }
+
+  function drawAdmin() {
+    var box = $("apps");
+    box.textContent = "";
+    if (!draft.apps.length) box.appendChild(el("div", { class: "empty", text: "등록된 앱이 없습니다. 위에서 앱을 추가하세요." }));
+    draft.apps.forEach(function (app, ai) {
+      var top = el("div", { class: "app-top" }, [
+        bind(el("input", { class: "field", placeholder: "앱 이름" }), app, "name"),
+        el("button", { class: "btn sm danger", text: "앱 삭제", onclick: function () {
+          if (confirm("'" + (app.name || "이 앱") + "'과(와) 하위 버전을 모두 삭제할까요?")) { draft.apps.splice(ai, 1); drawAdmin(); }
+        } })
+      ]);
+      var wrap = el("div", { class: "app-box" }, [top]);
+      wrap.appendChild(el("div", { class: "ver head" }, [
+        el("span", { text: "버전" }), el("span", { text: "배포 파일 이름" }), el("span", { text: "다운로드 링크" }), el("span", { text: "등록일" }), el("span")
+      ]));
+      (app.versions = app.versions || []).forEach(function (v, vi) {
+        wrap.appendChild(el("div", { class: "ver" }, [
+          bind(el("input", { class: "field", placeholder: "1.0.0" }), v, "version"),
+          bind(el("input", { class: "field", placeholder: "예: ISMP_PoC_v1.0.0.zip" }), v, "fileName"),
+          bind(el("input", { class: "field", placeholder: "https://drive.google.com/..." }), v, "url"),
+          bind(el("input", { class: "field", type: "date" }), v, "date"),
+          el("button", { class: "x", text: "✕", title: "삭제", onclick: function () { app.versions.splice(vi, 1); drawAdmin(); } })
+        ]));
+      });
+      wrap.appendChild(el("button", { class: "btn sm ghost", text: "+ 버전 추가", onclick: function () {
+        app.versions.unshift({ id: uid(), version: "", fileName: "", url: "", date: today() }); drawAdmin();
+      } }));
+      box.appendChild(wrap);
+    });
+  }
+
+  $("addApp").addEventListener("click", function () {
+    var name = $("newApp").value.trim();
+    if (!name) return;
+    draft.apps.push({ id: uid(), name: name, versions: [] });
+    $("newApp").value = "";
+    drawAdmin();
+  });
+
+  $("save").addEventListener("click", function () {
+    var msg = $("adminMsg");
+    msg.className = "msg";
+    for (var i = 0; i < draft.apps.length; i++) {
+      var a = draft.apps[i];
+      if (!a.name.trim()) { msg.textContent = "앱 이름을 입력하세요."; return; }
+      for (var j = 0; j < a.versions.length; j++) {
+        var v = a.versions[j];
+        if (!v.version.trim() || !v.fileName.trim()) { msg.textContent = "[" + a.name + "] 버전과 배포 파일 이름을 입력하세요."; return; }
+        if (!safeUrl(v.url)) { msg.textContent = "[" + a.name + " " + v.version + "] 다운로드 링크는 http(s):// 로 시작해야 합니다."; return; }
+      }
+    }
+    msg.textContent = "저장 중...";
+    api({ action: "save", password: password, data: draft }).then(function (r) {
+      if (r.ok) { data = JSON.parse(JSON.stringify(draft)); render(); msg.className = "msg ok"; msg.textContent = "저장되었습니다."; }
+      else if (r.status === 401) { password = ""; msg.textContent = "인증이 만료되었습니다. 다시 로그인하세요."; }
+      else msg.textContent = r.body.error || "저장하지 못했습니다.";
+    }).catch(function () { msg.textContent = "서버에 연결할 수 없습니다."; });
+  });
+
+  load();
+})();
+</script>
+</body>
+</html>
