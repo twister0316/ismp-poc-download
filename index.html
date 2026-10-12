@@ -33,14 +33,15 @@
   .list-head svg { width:26px; height:26px; flex:none; }
   .list-head h2 { margin:0; font-size:22px; }
   .list-head .cnt { color:var(--accent); }
-  .row { display:flex; align-items:center; gap:16px; padding:22px 24px; border-bottom:1px solid var(--line); }
+  .app-group { margin-top:28px; }
+  .app-title { margin:0; padding:0 4px 12px; font-size:22px; font-weight:700; border-bottom:1px solid var(--strong); word-break:break-all; }
+  .row { display:flex; align-items:center; gap:14px; padding:14px 8px 14px 20px; border-bottom:1px solid var(--line); }
   .row .info { flex:1; min-width:0; }
-  .title-line { display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
-  .badge { border:1px solid #888; color:#555; border-radius:14px; font-size:13px; padding:2px 9px; flex:none; }
-  .row .name { font-size:20px; font-weight:700; word-break:break-all; }
-  .meta { margin-top:12px; font-size:14px; color:#555; display:flex; flex-wrap:wrap; gap:4px 0; }
-  .meta span + span::before { content:"•"; color:var(--accent); margin:0 8px; }
-  .dl { flex:none; background:var(--btn); color:#fff; text-decoration:none; padding:10px 18px; border-radius:8px; font-weight:600; font-size:14px; }
+  .title-line { display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+  .badge { border:1px solid #888; color:#555; border-radius:12px; font-size:12px; padding:1px 8px; flex:none; }
+  .row .name { font-size:15px; font-weight:600; word-break:break-all; }
+  .meta { margin-top:6px; font-size:13px; color:#666; }
+  .dl { flex:none; background:var(--btn); color:#fff; text-decoration:none; padding:7px 14px; border-radius:6px; font-weight:600; font-size:13px; }
   .dl:hover { background:var(--btn-h); }
   .empty { padding:56px 0; text-align:center; color:var(--muted); }
 
@@ -72,7 +73,7 @@
 
   @media (max-width:860px) {
     .site-title { font-size:14px; padding-left:12px; }
-    .row { flex-direction:column; align-items:flex-start; padding:18px 4px; }
+    .row { flex-direction:column; align-items:flex-start; padding:14px 4px 14px 12px; }
     .ver { grid-template-columns:1fr 1fr; }
     .ver.head { display:none; }
   }
@@ -162,33 +163,35 @@
   }
 
   /* ---------- 공개 목록 ---------- */
-  function flat() {
-    var out = [];
-    data.apps.forEach(function (a) {
-      (a.versions || []).forEach(function (v) { out.push({ app: a, v: v }); });
-    });
-    out.sort(function (x, y) { return String(y.v.date).localeCompare(String(x.v.date)); });
-    return out;
-  }
-
   function render() {
-    var rows = flat();
+    var groups = data.apps.map(function (a) {
+      var vs = (a.versions || []).slice().sort(function (x, y) {
+        return String(y.date).localeCompare(String(x.date));
+      });
+      return { app: a, versions: vs };
+    }).filter(function (g) { return g.versions.length; });
 
-    $("cnt").textContent = rows.length.toLocaleString();
+    var total = groups.reduce(function (n, g) { return n + g.versions.length; }, 0);
+    $("cnt").textContent = total.toLocaleString();
     var list = $("list");
     list.textContent = "";
-    if (!rows.length) { list.appendChild(el("div", { class: "empty", text: "등록된 배포 파일이 없습니다." })); return; }
-    rows.forEach(function (r) {
-      var info = el("div", { class: "info" }, [
-        el("div", { class: "title-line" }, [
-          el("span", { class: "badge", text: r.v.version }),
-          el("span", { class: "name", text: r.v.fileName })
-        ]),
-        el("div", { class: "meta" }, [el("span", { text: r.app.name }), el("span", { text: r.v.date })])
-      ]);
-      var a = el("a", { class: "dl", text: "다운로드", target: "_blank", rel: "noopener" });
-      if (safeUrl(r.v.url)) a.href = r.v.url;
-      list.appendChild(el("div", { class: "row" }, [info, a]));
+    if (!groups.length) { list.appendChild(el("div", { class: "empty", text: "등록된 배포 파일이 없습니다." })); return; }
+
+    groups.forEach(function (g) {
+      var box = el("div", { class: "app-group" }, [el("h3", { class: "app-title", text: g.app.name })]);
+      g.versions.forEach(function (v) {
+        var info = el("div", { class: "info" }, [
+          el("div", { class: "title-line" }, [
+            el("span", { class: "badge", text: v.version }),
+            el("span", { class: "name", text: v.fileName })
+          ]),
+          el("div", { class: "meta", text: v.date })
+        ]);
+        var a = el("a", { class: "dl", text: "다운로드", target: "_blank", rel: "noopener" });
+        if (safeUrl(v.url)) a.href = v.url;
+        box.appendChild(el("div", { class: "row" }, [info, a]));
+      });
+      list.appendChild(box);
     });
   }
 
