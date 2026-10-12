@@ -189,7 +189,7 @@
         ]);
         var a = el("a", { class: "dl", text: "다운로드", target: "_blank", rel: "noopener" });
         if (safeUrl(v.url)) a.href = v.url;
-        box.appendChild(el("div", { class: "row" }, [info, a]));
+        box.appendChild(el("div", { class: "row" }, [a, info]));
       });
       list.appendChild(box);
     });
