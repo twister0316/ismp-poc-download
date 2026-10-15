@@ -35,12 +35,10 @@
   .list-head .cnt { color:var(--accent); }
   .app-group { margin-top:28px; }
   .app-title { margin:0; padding:0 4px 12px; font-size:22px; font-weight:700; border-bottom:1px solid var(--strong); word-break:break-all; }
-  .row { display:flex; align-items:center; gap:14px; padding:14px 8px 14px 20px; border-bottom:1px solid var(--line); }
-  .row .info { flex:1; min-width:0; }
-  .title-line { display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+  .row { display:flex; align-items:center; gap:12px; padding:12px 8px 12px 20px; border-bottom:1px solid var(--line); }
   .badge { border:1px solid #888; color:#555; border-radius:12px; font-size:12px; padding:1px 8px; flex:none; }
-  .row .name { font-size:15px; font-weight:600; word-break:break-all; }
-  .meta { margin-top:6px; font-size:13px; color:#666; }
+  .date { font-size:13px; color:#666; flex:none; }
+  .row .name { flex:1; min-width:0; font-size:15px; font-weight:600; word-break:break-all; }
   .dl { flex:none; background:var(--btn); color:#fff; text-decoration:none; padding:7px 14px; border-radius:6px; font-weight:600; font-size:13px; }
   .dl:hover { background:var(--btn-h); }
   .empty { padding:56px 0; text-align:center; color:var(--muted); }
@@ -73,7 +71,8 @@
 
   @media (max-width:860px) {
     .site-title { font-size:14px; padding-left:12px; }
-    .row { flex-direction:column; align-items:flex-start; padding:14px 4px 14px 12px; }
+    .row { flex-wrap:wrap; padding:12px 4px 12px 12px; }
+    .row .name { flex-basis:100%; }
     .ver { grid-template-columns:1fr 1fr; }
     .ver.head { display:none; }
   }
@@ -180,16 +179,14 @@
     groups.forEach(function (g) {
       var box = el("div", { class: "app-group" }, [el("h3", { class: "app-title", text: g.app.name })]);
       g.versions.forEach(function (v) {
-        var info = el("div", { class: "info" }, [
-          el("div", { class: "title-line" }, [
-            el("span", { class: "badge", text: v.version }),
-            el("span", { class: "name", text: v.fileName })
-          ]),
-          el("div", { class: "meta", text: v.date })
-        ]);
         var a = el("a", { class: "dl", text: "다운로드", target: "_blank", rel: "noopener" });
         if (safeUrl(v.url)) a.href = v.url;
-        box.appendChild(el("div", { class: "row" }, [a, info]));
+        box.appendChild(el("div", { class: "row" }, [
+          a,
+          el("span", { class: "badge", text: v.version }),
+          el("span", { class: "date", text: v.date }),
+          el("span", { class: "name", text: v.fileName })
+        ]));
       });
       list.appendChild(box);
     });
