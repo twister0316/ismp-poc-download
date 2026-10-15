@@ -57,6 +57,7 @@ function sanitize(input) {
         fileName: str(v.fileName, 200),
         url: str(v.url, 2000),
         date: str(v.date, 10),
+        note: str(v.note, 200),
       };
       if (!item.version || !item.fileName || !isHttp(item.url)) return null;
       versions.push(item);

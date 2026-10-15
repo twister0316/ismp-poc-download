@@ -35,10 +35,11 @@
   .list-head .cnt { color:var(--accent); }
   .app-group { margin-top:28px; }
   .app-title { margin:0; padding:0 4px 12px; font-size:22px; font-weight:700; border-bottom:1px solid var(--strong); word-break:break-all; }
-  .row { display:flex; align-items:center; gap:12px; padding:12px 8px 12px 20px; border-bottom:1px solid var(--line); }
+  .row { display:flex; flex-wrap:wrap; align-items:center; gap:6px 12px; padding:12px 8px 12px 20px; border-bottom:1px solid var(--line); }
   .badge { border:1px solid #888; color:#555; border-radius:12px; font-size:12px; padding:1px 8px; flex:none; }
   .date { font-size:13px; color:#666; flex:none; }
   .row .name { flex:1; min-width:0; font-size:15px; font-weight:600; word-break:break-all; }
+  .note { flex-basis:100%; font-size:13px; color:#555; line-height:1.5; padding-left:2px; white-space:pre-wrap; word-break:break-all; }
   .dl { flex:none; background:var(--btn); color:#fff; text-decoration:none; padding:7px 14px; border-radius:6px; font-weight:600; font-size:13px; }
   .dl:hover { background:var(--btn-h); }
   .empty { padding:56px 0; text-align:center; color:var(--muted); }
@@ -67,6 +68,9 @@
   .ver { display:grid; grid-template-columns:90px 1fr 1.4fr 130px 34px; gap:6px; margin-bottom:6px; }
   .ver .field { height:38px; font-size:13px; padding:0 8px; }
   .ver.head { font-size:12px; color:var(--muted); }
+  .ver-block { margin-bottom:10px; }
+  .ver-block .ver { margin-bottom:4px; }
+  .note-in { height:34px; font-size:13px; padding:0 8px; }
   .x { height:38px; border:0; background:#fbe9e7; color:var(--danger); border-radius:8px; }
 
   @media (max-width:860px) {
@@ -181,12 +185,14 @@
       g.versions.forEach(function (v) {
         var a = el("a", { class: "dl", text: "다운로드", target: "_blank", rel: "noopener" });
         if (safeUrl(v.url)) a.href = v.url;
-        box.appendChild(el("div", { class: "row" }, [
+        var kids = [
           a,
           el("span", { class: "badge", text: v.version }),
           el("span", { class: "date", text: v.date }),
           el("span", { class: "name", text: v.fileName })
-        ]));
+        ];
+        if (v.note) kids.push(el("span", { class: "note", text: v.note }));
+        box.appendChild(el("div", { class: "row" }, kids));
       });
       list.appendChild(box);
     });
@@ -252,16 +258,19 @@
         el("span", { text: "버전" }), el("span", { text: "배포 파일 이름" }), el("span", { text: "다운로드 링크" }), el("span", { text: "등록일" }), el("span")
       ]));
       (app.versions = app.versions || []).forEach(function (v, vi) {
-        wrap.appendChild(el("div", { class: "ver" }, [
+        wrap.appendChild(el("div", { class: "ver-block" }, [
+          el("div", { class: "ver" }, [
           bind(el("input", { class: "field", placeholder: "1.0.0" }), v, "version"),
           bind(el("input", { class: "field", placeholder: "예: ISMP_PoC_v1.0.0.zip" }), v, "fileName"),
           bind(el("input", { class: "field", placeholder: "https://drive.google.com/..." }), v, "url"),
           bind(el("input", { class: "field", type: "date" }), v, "date"),
           el("button", { class: "x", text: "✕", title: "삭제", onclick: function () { app.versions.splice(vi, 1); drawAdmin(); } })
+        ]),
+          bind(el("input", { class: "field note-in", placeholder: "수정 내용 (선택, 간단히 입력)", maxLength: 200 }), v, "note")
         ]));
       });
       wrap.appendChild(el("button", { class: "btn sm ghost", text: "+ 버전 추가", onclick: function () {
-        app.versions.unshift({ id: uid(), version: "", fileName: "", url: "", date: today() }); drawAdmin();
+        app.versions.unshift({ id: uid(), version: "", fileName: "", url: "", date: today(), note: "" }); drawAdmin();
       } }));
       box.appendChild(wrap);
     });
