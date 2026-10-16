@@ -142,6 +142,7 @@
   var data = { apps: [] };      // 화면에 표시되는 데이터
   var draft = null;             // 관리자 편집 중인 데이터
   var password = "";            // 인증된 관리자 비밀번호 (메모리에만 보관)
+  var READ_ONLY = true;          // Vercel: 읽기 전용 미러 (Apps Script 빌드에서는 false 로 치환됨)
 
   function uid() { return Math.random().toString(36).slice(2, 10); }
   function today() { return new Date().toISOString().slice(0, 10); }
@@ -223,6 +224,7 @@
   function closeModal() { $("ov").classList.remove("open"); }
 
   $("gear").addEventListener("click", openModal);
+  if (READ_ONLY) $("gear").style.display = "none";
   document.querySelectorAll("[data-close]").forEach(function (b) { b.addEventListener("click", closeModal); });
   $("ov").addEventListener("mousedown", function (e) { if (e.target === $("ov")) closeModal(); });
   document.addEventListener("keydown", function (e) { if (e.key === "Escape") closeModal(); });

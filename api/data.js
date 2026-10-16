@@ -1,14 +1,19 @@
-// 다운로드 목록 저장/조회 API (Vercel Serverless Function)
-// 저장소: Upstash Redis (Vercel Marketplace > Upstash for Redis 연결 시 환경변수 자동 주입)
-// 관리자 비밀번호: 환경변수 ADMIN_PASSWORD (코드에 넣지 않음)
-const crypto = require("crypto");
+// 다운로드 목록 API (Vercel Serverless Function) - 읽기 전용 미러
+// 원본 데이터는 구글 Apps Script 웹앱에 있고, 여기서는 서버가 그 목록을 읽어서 전달한다.
+// 등록·수정은 구글 사이트(Apps Script) 관리자 화면에서만 한다.
+//
+// 환경변수(선택)
+//   APPS_SCRIPT_URL        Apps Script 웹앱 주소 (기본값 아래)
+//   KV_REST_API_URL/TOKEN  Upstash Redis - 설정되어 있으면 마지막으로 읽은 목록을 보관했다가
+//                          Apps Script 장애 시 대신 보여준다.
 
-const KEY = "ismp-poc-downloads";
+const APPS_SCRIPT_URL =
+  process.env.APPS_SCRIPT_URL ||
+  "https://script.google.com/macros/s/AKfycby2Z2HogOfQq49-qXGTF3p9CVOECFh66qKCCJ-paJLttRFEDAO-9uAW9R1yyUgOHAkFbA/exec";
+
+const CACHE_KEY = "ismp-poc-downloads-mirror";
 const REST_URL = process.env.KV_REST_API_URL || process.env.UPSTASH_REDIS_REST_URL;
 const REST_TOKEN = process.env.KV_REST_API_TOKEN || process.env.UPSTASH_REDIS_REST_TOKEN;
-
-// 로컬 테스트용 임시 저장소(운영에서는 사용되지 않음)
-const mem = globalThis.__ismpMem || (globalThis.__ismpMem = { value: null });
 
 async function redis(command) {
   const r = await fetch(REST_URL, {
@@ -20,78 +25,49 @@ async function redis(command) {
   return (await r.json()).result;
 }
 
-async function readData() {
-  const raw = REST_URL ? await redis(["GET", KEY]) : mem.value;
-  if (!raw) return { apps: [] };
-  try { return JSON.parse(raw); } catch { return { apps: [] }; }
+async function fetchOrigin() {
+  const url = APPS_SCRIPT_URL + (APPS_SCRIPT_URL.includes("?") ? "&" : "?") + "api=data";
+  const r = await fetch(url, { redirect: "follow", signal: AbortSignal.timeout(15000) });
+  if (!r.ok) throw new Error("origin " + r.status);
+  const data = await r.json();
+  if (!data || !Array.isArray(data.apps)) throw new Error("bad origin data");
+  return data;
 }
 
-async function writeData(obj) {
-  const raw = JSON.stringify(obj);
-  if (REST_URL) await redis(["SET", KEY, raw]);
-  else mem.value = raw;
+async function readCache() {
+  if (!REST_URL) return null;
+  try {
+    const raw = await redis(["GET", CACHE_KEY]);
+    return raw ? JSON.parse(raw) : null;
+  } catch { return null; }
 }
 
-function passwordOk(input) {
-  const expected = process.env.ADMIN_PASSWORD;
-  if (!expected || typeof input !== "string") return false;
-  const a = crypto.createHash("sha256").update(input).digest();
-  const b = crypto.createHash("sha256").update(expected).digest();
-  return crypto.timingSafeEqual(a, b);
-}
-
-const str = (v, max) => String(v ?? "").trim().slice(0, max);
-const isHttp = (u) => /^https?:\/\//i.test(u);
-
-function sanitize(input) {
-  if (!input || !Array.isArray(input.apps) || input.apps.length > 100) return null;
-  const apps = [];
-  for (const a of input.apps) {
-    const name = str(a.name, 100);
-    if (!name || !Array.isArray(a.versions) || a.versions.length > 500) return null;
-    const versions = [];
-    for (const v of a.versions) {
-      const item = {
-        id: str(v.id, 32) || crypto.randomUUID().slice(0, 8),
-        version: str(v.version, 50),
-        fileName: str(v.fileName, 200),
-        url: str(v.url, 2000),
-        date: str(v.date, 10),
-        note: str(v.note, 200),
-      };
-      if (!item.version || !item.fileName || !isHttp(item.url)) return null;
-      versions.push(item);
-    }
-    apps.push({ id: str(a.id, 32) || crypto.randomUUID().slice(0, 8), name, versions });
-  }
-  return { apps };
+async function writeCache(data) {
+  if (!REST_URL) return;
+  try { await redis(["SET", CACHE_KEY, JSON.stringify(data)]); } catch { /* 보관 실패는 무시 */ }
 }
 
 module.exports = async (req, res) => {
-  res.setHeader("Cache-Control", "no-store");
   try {
     if (req.method === "GET") {
-      return res.status(200).json(await readData());
+      try {
+        const data = await fetchOrigin();
+        await writeCache(data);
+        res.setHeader("Cache-Control", "public, s-maxage=30, stale-while-revalidate=300");
+        return res.status(200).json(data);
+      } catch (e) {
+        const cached = await readCache();
+        if (cached) {
+          res.setHeader("Cache-Control", "no-store");
+          return res.status(200).json(cached);
+        }
+        res.setHeader("Cache-Control", "no-store");
+        return res.status(502).json({ error: "원본 목록을 불러오지 못했습니다." });
+      }
     }
-    if (req.method === "POST") {
-      const body = typeof req.body === "string" ? JSON.parse(req.body || "{}") : req.body || {};
-      if (!process.env.ADMIN_PASSWORD) {
-        return res.status(500).json({ error: "서버에 ADMIN_PASSWORD 환경변수가 설정되지 않았습니다." });
-      }
-      if (!passwordOk(body.password)) {
-        return res.status(401).json({ error: "unauthorized" });
-      }
-      if (body.action === "verify") return res.status(200).json({ ok: true });
-      if (body.action === "save") {
-        const clean = sanitize(body.data);
-        if (!clean) return res.status(400).json({ error: "데이터 형식이 올바르지 않습니다." });
-        await writeData(clean);
-        return res.status(200).json({ ok: true });
-      }
-      return res.status(400).json({ error: "알 수 없는 요청입니다." });
-    }
-    res.setHeader("Allow", "GET, POST");
-    return res.status(405).json({ error: "method not allowed" });
+    res.setHeader("Allow", "GET");
+    res.setHeader("Cache-Control", "no-store");
+    return res.status(403).json({ error: "이 사이트는 읽기 전용입니다. 구글 사이트(Apps Script)에서 등록하세요." });
   } catch (e) {
     return res.status(500).json({ error: "서버 오류가 발생했습니다." });
   }

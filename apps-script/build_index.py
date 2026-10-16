@@ -33,5 +33,7 @@ confirm_new = '''el("button", { class: "btn sm danger", text: "앱 삭제", oncl
         } })'''
 s, n3 = confirm_re.subn(lambda m: confirm_new, s)
 assert (n1, n2, n3) == (1, 1, 1), (n1, n2, n3)
+assert "var READ_ONLY = true;" in s
+s = s.replace("var READ_ONLY = true;", "var READ_ONLY = false;", 1)
 (here / "Index.html").write_text(s, encoding="utf-8")
 print("ok", len(s))

@@ -5,7 +5,12 @@
 var FILE_PROP = 'DATA_FILE_ID';
 var FILE_NAME = 'ismp-poc-downloads.json';
 
-function doGet() {
+function doGet(e) {
+  // ?api=data → 목록 JSON (Vercel 미러가 서버에서 읽어 간다)
+  if (e && e.parameter && e.parameter.api === 'data') {
+    return ContentService.createTextOutput(JSON.stringify(readData_()))
+      .setMimeType(ContentService.MimeType.JSON);
+  }
   return HtmlService.createHtmlOutputFromFile('Index')
     .setTitle('국회기록원 ISMP 사업 PoC 다운로드')
     .addMetaTag('viewport', 'width=device-width, initial-scale=1');
