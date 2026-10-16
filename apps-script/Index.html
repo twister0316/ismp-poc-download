@@ -35,11 +35,11 @@
   .list-head .cnt { color:var(--accent); }
   .app-group { margin-top:28px; }
   .app-title { margin:0; padding:0 4px 12px; font-size:22px; font-weight:700; border-bottom:1px solid var(--strong); word-break:break-all; }
-  .row { display:flex; flex-wrap:wrap; align-items:center; gap:6px 12px; padding:12px 8px 12px 20px; border-bottom:1px solid var(--line); }
+  .row { display:flex; flex-wrap:nowrap; align-items:center; gap:6px 12px; padding:12px 8px 12px 20px; border-bottom:1px solid var(--line); }
   .badge { border:1px solid #888; color:#555; border-radius:12px; font-size:12px; padding:1px 8px; flex:none; }
   .date { font-size:13px; color:#666; flex:none; }
-  .row .name { flex:1; min-width:0; font-size:15px; font-weight:600; word-break:break-all; }
-  .note { flex-basis:100%; font-size:13px; color:#555; line-height:1.5; padding-left:2px; white-space:pre-wrap; word-break:break-all; }
+  .row .name { flex:0 1 auto; min-width:0; font-size:15px; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .note { flex:1 1 0; min-width:0; font-size:13px; color:#555; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
   .dl { flex:none; background:var(--btn); color:#fff; text-decoration:none; padding:7px 14px; border-radius:6px; font-weight:600; font-size:13px; }
   .dl:hover { background:var(--btn-h); }
   .empty { padding:56px 0; text-align:center; color:var(--muted); }
@@ -76,7 +76,7 @@
   @media (max-width:860px) {
     .site-title { font-size:14px; padding-left:12px; }
     .row { flex-wrap:wrap; padding:12px 4px 12px 12px; }
-    .row .name { flex-basis:100%; }
+    .row .name, .note { flex-basis:100%; white-space:normal; word-break:break-all; }
     .ver { grid-template-columns:1fr 1fr; }
     .ver.head { display:none; }
   }
@@ -191,7 +191,7 @@
           el("span", { class: "date", text: v.date }),
           el("span", { class: "name", text: v.fileName })
         ];
-        if (v.note) kids.push(el("span", { class: "note", text: v.note }));
+        if (v.note) kids.push(el("span", { class: "note", text: v.note, title: v.note }));
         box.appendChild(el("div", { class: "row" }, kids));
       });
       list.appendChild(box);
